@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .bg {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+
+        .alertBox {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: -100px;
+            margin-top: -50px;
+            width: 200px;
+            height: 100px;
+            overflow: hidden;
+            text-align: center;
+            background-color: #fff;
+            border-radius: 10px;
+            line-height: 70px;
+            display: none;
+        }
+
+        .alertBox .txt {
+            max-height: 70px;
+            line-height: 1.2;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .alertBox .btnBox {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30px;
+            line-height: 1;
+        }
+
+        .startBg {
+            position: fixed;
+        }
+    </style>
+    <script src="http://s.expoon.com/js/jquery.js"></script>
+</head>
+
+<body>
+    <canvas id="cvs">不支持canvas！</canvas>
+    <div class="bg">
+        <div class="alertBox">
+            <p class="txt">GG!</p>
+            <p class="btnBox">
+                <button id="back">返回</button>
+                <button id="rst">重开</button>
+            </p>
+        </div>
+    </div>
+    <script>
+        var global = {//全局参数
+            clientWidth: document.body.clientWidth,
+            clientHeight: document.body.clientHeight,
+            g: 0.001
+        },
+            cvs = document.getElementById('cvs'),
+            ctx = cvs.getContext('2d'),
+            preTime = Date.now();
+        cvs.width = global.clientWidth;
+        cvs.height = global.clientHeight;
+
+
+        var b = new Bird({ ctx: ctx });
+        var pipes = [];
+        var pipesNum = global.clientWidth / (b.radius * 4 + 52);
+        for (var i = 0; i < pipesNum; i++) {
+            pipes.push(new Pipe(52 * i + global.clientWidth + b.radius * 4 * i, -0.1, ctx));
+        }
+        requestAnimationFrame(run);
+        if ('ontouchend' in window) {
+            cvs.ontouchstart = function () {
+                b.a = global.g - b.aa;
+            }
+            cvs.ontouchend = function () {
+                b.a = global.g;
+            }
+        } else {
+            cvs.onmousedown = function () {
+                b.a = global.g - b.aa;
+            }
+            cvs.onmouseup= cvs.onmouseout = function () {
+                b.a = global.g;
+            }
+        }
+
+        function run() {
+            var now = Date.now();         //获取最新时间
+            dt = now - preTime;            //获取时间间隔
+            preTime = now;                  //更新当前时间
+
+            ctx.clearRect(0, 0, global.clientWidth, global.clientHeight);    //清空画布
+            // 绘制
+            b.move(dt);
+            b.draw();
+
+            var gg = false;
+            for (var i = 0; i < pipesNum; i++) {
+                pipes[i].update(dt);
+                pipes[i].draw();
+
+                //判断游戏结束
+                if (b.x + b.radius >= pipes[i].x && b.x - b.radius < pipes[i].x + pipes[i].w && (b.y - b.radius <= pipes[i].r || b.y + b.radius >= pipes[i].r + 200)) {
+                    gg = true;
+                }
+            }
+
+            //判断游戏结束
+            if (b.y + b.radius >= global.clientHeight || b.y <= 0) {
+                gg = true;
+            }
+            if (gg) {
+                setTimeout(function(){
+                    openAlert('GG!');
+                },50);
+                return false;
+            }
+            requestAnimationFrame(run);
+        }
+        document.getElementById('rst').onclick = reGame;
+        function reGame() {
+            closeAlert();
+            setTimeout(function(){
+                
+            })
+            b.rst();
+            pipes = [];
+            pipesNum = global.clientWidth / (b.radius * 4 + 52);
+            for (var i = 0; i < pipesNum; i++) {
+                pipes.push(new Pipe(52 * i + global.clientWidth + b.radius * 4 * i, -0.1, ctx));
+            }
+            requestAnimationFrame(run);
+        }
+        function openAlert(msg) {
+            $('.bg').show();
+            $('.alertBox .txt').html(msg);
+            $('.alertBox').show();
+        }
+        function closeAlert() {
+            $('.bg').hide();
+            $('.alertBox').hide();
+        }
+
+        document.onresize = function () {
+            global.clientWidth = document.body.clientWidth;
+            global.clientHeight = document.body.clientHeight;
+        };
+
+        function Bird(obj) {
+            this.x = obj.x || global.clientWidth * 0.2;
+            this.y = obj.y || global.clientHeight * 0.5;
+            this.radius = obj.radius || 30;
+            this.v = 0;
+            this.aa = 0.003; //动力
+            this.a = global.g;//实时加速度
+            this.ctx = obj.ctx;
+        }
+        Bird.prototype.draw = function () {
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#000';
+            this.ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+            this.ctx.moveTo(this.x + this.radius * Math.cos(Math.PI / 12), this.y - this.radius * Math.sin(Math.PI / 12));
+            this.ctx.lineTo(this.x + this.radius * 1.3, this.y);
+            this.ctx.lineTo(this.x + this.radius * Math.cos(Math.PI / 12), this.y + this.radius * Math.sin(Math.PI / 12));
+            this.ctx.moveTo(this.x + this.radius, this.y);
+            this.ctx.lineTo(this.x + this.radius * 1.3, this.y);
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.arc(this.x + 0.5 * this.radius * Math.cos(Math.PI / 4), this.y - 0.5 * this.radius * Math.sin(Math.PI / 4), this.radius * 0.2, 0, 2 * Math.PI);
+            this.ctx.fill();
+            ctx.closePath();
+        }
+        Bird.prototype.move = function (t) {
+            this.y += this.v * t + this.a * t * t / 2;
+            this.v += this.a * t;
+        }
+        Bird.prototype.rst = function(){
+            this.x = global.clientWidth * 0.2;
+            this.y = global.clientHeight * 0.5;
+            this.v = 0;
+            this.a = global.g;//实时加速度
+            console.log(this);
+            console.log(this.y);
+            
+        }
+        function Pipe(x, speed, ctx) {
+            this.x = x;
+            this.w = 52;
+            this.speed = speed;
+            this.ctx = ctx;
+            this.r = Math.random() * 200 + 100;  //随机高度+固定高度
+        }
+        Pipe.prototype.draw = function () {
+            this.ctx.beginPath();
+            this.ctx.fillStyle = '#382';
+            this.ctx.fillRect(this.x, 0, this.w, this.r);
+            this.ctx.fillRect(this.x, this.r + 200, this.w, global.clientHeight - this.r - 200);
+            ctx.closePath();
+        }
+        Pipe.prototype.setCount = function (count, gap) {
+            Pipe.count = count;
+            Pipe.gap = gap;        //这里是这次绘制的特别之处，加入了间隔
+        }
+        Pipe.prototype.update = function (dur) {
+            this.x = this.x + this.speed * dur;
+            if (this.x < -this.w / 2) {    //管道宽度52px
+                this.x = global.clientWidth;   //无缝滚动
+                this.r = Math.random() * 200 + 150;     //切换后的管道必须重新设置一个高度，给用户一个新管道的错觉
+            }
+        }
+
+    </script>
+</body>
+
+</html>

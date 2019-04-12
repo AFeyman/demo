@@ -267,6 +267,7 @@
             Pipe.count = count;
             Pipe.gap = gap;        //这里是这次绘制的特别之处，加入了间隔
         }
+      //
         Pipe.prototype.update = function (dur) {
             this.x = this.x + this.speed * dur;
             if (this.x < -this.w / 2) {    //管道宽度52px

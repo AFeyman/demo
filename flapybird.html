@@ -29,7 +29,7 @@
             display: none;
         }
 
-        .alertBox {
+        .alertBox,.confirmBox {
             position: absolute;
             left: 50%;
             top: 50%;
@@ -45,14 +45,14 @@
             display: none;
         }
 
-        .alertBox .txt {
+        .bg .txt{
             max-height: 70px;
             line-height: 1.2;
             display: inline-block;
             vertical-align: middle;
         }
 
-        .alertBox .btnBox {
+        .bg .btnBox {
             position: absolute;
             bottom: 0;
             width: 100%;
@@ -71,6 +71,12 @@
     <canvas id="cvs">不支持canvas！</canvas>
     <div class="bg">
         <div class="alertBox">
+            <p class="txt">GG!</p>
+            <p class="btnBox">
+                <button onclick="closeAlert();">知道了</button>
+            </p>
+        </div>
+        <div class="confirmBox">
             <p class="txt">GG!</p>
             <p class="btnBox">
                 <button id="back">返回</button>
@@ -97,7 +103,10 @@
         for (var i = 0; i < pipesNum; i++) {
             pipes.push(new Pipe(52 * i + global.clientWidth + b.radius * 4 * i, -0.1, ctx));
         }
-        requestAnimationFrame(run);
+
+        openAlert('那就开始呗！', init)
+
+        // requestAnimationFrame(run);
         if ('ontouchend' in window) {
             cvs.ontouchstart = function () {
                 b.a = global.g - b.aa;
@@ -109,9 +118,30 @@
             cvs.onmousedown = function () {
                 b.a = global.g - b.aa;
             }
-            cvs.onmouseup= cvs.onmouseout = function () {
+            cvs.onmouseup = cvs.onmouseout = function () {
                 b.a = global.g;
             }
+        }
+
+        function init() {
+            global = {//全局参数
+                clientWidth: document.body.clientWidth,
+                clientHeight: document.body.clientHeight,
+                g: 0.001
+            },
+                cvs = document.getElementById('cvs'),
+                ctx = cvs.getContext('2d'),
+                preTime = Date.now();
+            cvs.width = global.clientWidth;
+            cvs.height = global.clientHeight;
+            b = new Bird({ ctx: ctx });
+            pipes = [];
+            pipesNum = global.clientWidth / (b.radius * 4 + 52);
+            for (var i = 0; i < pipesNum; i++) {
+                pipes.push(new Pipe(52 * i + global.clientWidth + b.radius * 4 * i, -0.1, ctx));
+            }
+            requestAnimationFrame(run);
+
         }
 
         function run() {
@@ -140,35 +170,44 @@
                 gg = true;
             }
             if (gg) {
-                setTimeout(function(){
-                    openAlert('GG!');
-                },50);
+                setTimeout(function () {
+                    openConfirm('GG!',{fn2:function(){
+                        init();
+                    }});
+                }, 50);
                 return false;
             }
             requestAnimationFrame(run);
         }
-        document.getElementById('rst').onclick = reGame;
-        function reGame() {
-            closeAlert();
-            setTimeout(function(){
-                
-            })
-            b.rst();
-            pipes = [];
-            pipesNum = global.clientWidth / (b.radius * 4 + 52);
-            for (var i = 0; i < pipesNum; i++) {
-                pipes.push(new Pipe(52 * i + global.clientWidth + b.radius * 4 * i, -0.1, ctx));
-            }
-            requestAnimationFrame(run);
-        }
-        function openAlert(msg) {
+        function openAlert(msg, fn) {
             $('.bg').show();
             $('.alertBox .txt').html(msg);
+            $('.alertBox .btnBox button')[0].onclick = function () {
+                closeAlert(fn);
+            };
             $('.alertBox').show();
         }
-        function closeAlert() {
+        function closeAlert(fn) {
             $('.bg').hide();
             $('.alertBox').hide();
+            fn ? fn() : '';
+        }
+        function openConfirm(msg, obj) {
+            $('.bg').show();
+            $('.confirmBox .txt').html(msg);
+            $('#back').html(obj.b1 || '取消').click(function () {
+                obj.fn1?obj.fn1():false;
+                closeAlert();
+                $('.confirmBox').hide();
+                return false;
+            });
+            $('#rst').html(obj.b2 || '确认').click(function () {
+                obj.fn2?obj.fn2():false;
+                closeAlert();
+                $('.confirmBox').hide();
+                return true;
+            });
+            $('.confirmBox').show();
         }
 
         document.onresize = function () {
@@ -204,14 +243,11 @@
             this.y += this.v * t + this.a * t * t / 2;
             this.v += this.a * t;
         }
-        Bird.prototype.rst = function(){
+        Bird.prototype.rst = function () {
             this.x = global.clientWidth * 0.2;
             this.y = global.clientHeight * 0.5;
             this.v = 0;
             this.a = global.g;//实时加速度
-            console.log(this);
-            console.log(this.y);
-            
         }
         function Pipe(x, speed, ctx) {
             this.x = x;

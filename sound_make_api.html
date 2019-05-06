@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+    <meta content="yes" name="apple-mobile-web-app-capable">
+    <meta content="black" name="apple-mobile-web-app-status-bar-style">
+    <meta content="telephone=no" name="format-detection">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="http://s.expoon.com/js/jquery.js"></script>
+    <script src="./baidu_yuyin/baidu_tts_cors.js"></script>
+</head>
+
+<body>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            padding-top: 50px;
+        }
+        p.rangeNum {
+            position: fixed;
+        }
+        .box{
+            line-height: 60px;
+        }
+        .box button{
+            vertical-align: middle;
+            display: inline-block;
+        }
+        audio{
+            vertical-align: middle;
+        }
+        .da{
+            margin: 0 10px;
+            text-align: center;
+            text-decoration: none;
+        }
+    </style>
+    <div>
+        <input type="text" id='text' value='百度语音合成' style='width: 500px;'>
+        <br><br>
+        <button onclick='tts()'>合成</button>
+        <button onclick='play()' id='playBtn'>准备中</button>
+        <button onclick='pause()'>暂停</button>
+        <button onclick='cancel()'>取消</button>
+        <br><br>
+        <label for="">语速:0<input type="range" id="ys" title="语速" placeholder="语速" max="15" min="0" value="4">15</label>
+        <label for="">音调:0<input type="range" id="yd" title="语速" placeholder="语速" max="15" min="0" value="8">15</label>
+        <label for="">发音:
+            <select name="" id="fy">
+                <option value="4" selected>度丫丫</option>
+                <option value="3">度逍遥</option>
+                <option value="0">普通女声</option>
+                <option value="1">普通男生</option>
+            </select>
+        </label>
+        <label for="">格式:
+            <select name="" id="gs">
+                <option value="3" selected>mp3</option>
+                <option value="4">pcm-16k</option>
+                <option value="5">pcm-8k</option>
+                <option value="6">wav</option>
+            </select>
+        </label>
+    </div>
+
+    <script>
+        $('input[type=range]').on({
+            mousedown: function (e) {
+                $('body').append('<p class="rangeNum"></p>');
+                $('.rangeNum').css({ left: e.clientX, top: e.clientY }).html($(this).val());
+                $(this).on('mousemove', function (e) {
+                    $('.rangeNum').css({ left: e.clientX, top: e.clientY }).html($(this).val());
+                    console.log()
+                })
+            },
+
+            mouseup: function () {
+                $(this).off('mousemove');
+                $('.rangeNum').remove();
+            }
+        })
+
+        // 初始化变量
+        var audio = null;
+        var playBtn = null;
+        // dom加载完毕回调后注册按钮对象
+        ready(function () {
+            playBtn = document.getElementById('playBtn');
+        });
+        // 合成按钮
+        function tts() {
+            let text = document.getElementById('text').value;
+            playBtn.innerText = '准备中';
+            // 调用语音合成接口
+            // 参数含义请参考 https://ai.baidu.com/docs#/TTS-API/41ac79a6
+            audio = btts({
+                tex: text,
+                tok: '25.bca929e9560724085cf3b4d52bcf6ee1.315360000.1863048403.282335-15432203',
+                spd: $('#ys').val(),//语速
+                pit: $('#yd').val(),//音调
+                vol: 15,
+                per: $('#fy').val(),//0为普通女声，1为普通男生，3为情感合成-度逍遥，4为情感合成-度丫丫，默认为普通女声
+                aue: $('#gs').val()//3为mp3格式(默认)； 4为pcm-16k；5为pcm-8k；6为wav
+            }, {
+                    volume: 0.3,
+                    autoplay: true,
+                    autoDestory: true,
+                    timeout: 10000,
+                    hidden: false,
+                    onInit: function (htmlAudioElement) {
+                    },
+                    onSuccess: function (htmlAudioElement) {
+                        audio = htmlAudioElement;
+                        playBtn.innerText = '播放';
+                    },
+                    onError: function (text) {
+                        alert(text)
+                    },
+                    onTimeout: function () {
+                        alert('timeout')
+                    }
+                });
+        }
+        // 播放按钮
+        function play() {
+            if (audio === null) {
+                alert('请先点击合成')
+            } else {
+                audio.play();
+            }
+        }
+        // 暂停按钮
+        function pause() {
+            if (audio === null) {
+                alert('请先点击合成')
+            } else {
+                audio.pause();
+            }
+        }
+        // 取消按钮
+        function cancel() {
+            if (audio === null) {
+                alert('请先点击合成')
+            } else {
+                audio.pause();
+                document.body.removeChild(audio);
+                audio = null;
+                playBtn.innerText = '准备中';
+            }
+        }
+        // dom加载完毕回调
+        function ready(callback) {
+            var doc = document;
+            if (doc.addEventListener) {
+                doc.addEventListener('DOMContentLoaded', function () {
+                    callback();
+                }, false);
+            } else if (doc.attachEvent) {
+                doc.attachEvent('onreadystatechange', function () {
+                    if (doc.readyState === 'complete') {
+                        callback();
+                    }
+                });
+            }
+        }
+        function isMobile() {
+            if ((navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i))) {
+                /*window.location.href="你的手机版地址";*/
+                return true;
+            }else{
+                return false;
+            }
+        }
+        $('body').delegate('.del','click',function(){
+            $(this).parent().remove();
+        })
+        $('body').delegate('.bf','click',function(){
+            if($(this).html()=='暂停'){
+                $(this).html('播放').prev('audio')[0].pause();
+            }else{
+                $(this).html('暂停').prev('audio')[0].play();
+            }
+        })
+    </script>
+</body>
+
+</html>
